@@ -16,6 +16,11 @@
       "execute_command": "chmod +x {{ .Path }}; env {{ .Vars }} {{ .Path }}",
       "inline": ["sysrc hostname='jokerng-library'"]
     },
+     {
+      "type": "ansible",
+      "playbook_file": "bootstrap_library.yml"
+    },
+
     {
       "type": "shell",
       "execute_command": "chmod +x {{ .Path }}; env {{ .Vars }} {{ .Path }}",

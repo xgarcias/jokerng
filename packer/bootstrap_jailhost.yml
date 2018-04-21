@@ -1,0 +1,71 @@
+---
+- hosts: all
+  vars:
+    ansible_python_interpreter: "/usr/local/bin/python"
+  become: yes
+  gather_facts: yes
+
+
+  tasks:
+  - name: minimum packages
+    pkgng: name={{item}} state=present
+    with_items:
+    - rsync
+    - ezjail
+    - vim-console
+
+  - name: Upload ezjail configuration
+    copy:
+      src: "ezjail.conf"
+      dest: "/usr/local/etc/ezjail.conf"
+      owner: "root"
+      group: "wheel"
+      mode: "0644"
+
+  - name: enable ezjail
+    service:
+      name: "ezjail"
+      enabled: "yes"
+      state: "started"
+
+  - name: directory for mgmt scripts
+    file:
+      path: "/root/bin"
+      state: "directory"
+      owner: "root"
+      group: "wheel"
+      mode: "0644"
+
+  - name: Mgmt scripts
+    copy:
+      src: "scripts/{{item}}"
+      dest: "/root/bin/{{item}}"
+      owner: "root"
+      group: "wheel"
+      mode: "0700"
+    with_items:
+    - "basejail2pkg"
+    - "jail2pkg"
+
+  - name: setup lo1 iface
+    shell: sysrc cloned_interfaces+="lo1"
+
+  - name: add ip addr to lo1 iface
+    shell: sysrc ifconfig_lo1="172.31.0.200/24"
+
+  - name: add aliases to lo1
+    shell: sysrc ifconfig_lo1_aliases="inet 172.31.0.201-206/32"
+
+  - name: Configure pf
+    copy:
+      content: "nat pass on vtnet0 inet from 172.31.0.0/24 to any -> vtnet0:0\npass in all\npass out all\n\n"
+      dest: "/etc/pf.conf"
+      owner: "root"
+      group: "wheel"
+      mode: "0644"
+
+  - name: enable pf
+    service:
+      name: "pf"
+      enabled: "yes"
+      state: "started"

@@ -1,0 +1,87 @@
+#!/bin/sh
+
+STAGEDIR=/tmp/stage
+ZPOOL="zroot"
+EZJAILVOLUME="usr/jails"
+BASEJAILPATH=/usr/local/var/jockerng/basejail
+#RELEASE="11.1-RELEASE-p9"
+
+error_msg() {
+    echo $1
+    exit 1
+}
+
+[ $# -eq 1 ] || error_msg "expecting the release name as param. i.e 11.1-RELEASE-p9"
+
+RELEASE="$1"
+
+
+echo ${RELEASE} |egrep -q "^[[:digit:]]{2}.[[:digit:]]-RELEASE-p[[:digit:]]{1,2}$" || error_msg "failed to parse release name"
+
+
+rm -rf ${STAGEDIR}
+mkdir -p ${STAGEDIR}${BASEJAILPATH}
+
+cat >> ${STAGEDIR}/+PRE_INSTALL <<EOF
+zfs list | awk '{print \$1}'|  grep -q "${ZPOOL}/${EZJAILVOLUME}/basejail-${RELEASE}"
+if [ \$? -eq 0 ]; then
+    echo "Volume ${ZPOOL}/${EZJAILVOLUME}/basejail-${RELEASE} already exists, aborting"
+    exit 1
+fi
+zfs list | awk '{print \$1}'|  grep -q "${ZPOOL}/${EZJAILVOLUME}/newjail-${RELEASE}"
+if [ \$? -eq 0 ]; then
+    echo "Volume ${ZPOOL}/${EZJAILVOLUME}/newjail-${RELEASE} already exists, aborting"
+    exit 1
+fi
+EOF
+
+cat >> ${STAGEDIR}/+POST_INSTALL <<EOF
+echo "Loading basejail"
+bzcat ${BASEJAILPATH}/basejail-${RELEASE}.bz2 | zfs receive ${ZPOOL}/${EZJAILVOLUME}/basejail-${RELEASE}
+bzcat ${BASEJAILPATH}/newjail-${RELEASE}.bz2 | zfs receive ${ZPOOL}/${EZJAILVOLUME}/newjail-${RELEASE}
+zfs destroy ${ZPOOL}/${EZJAILVOLUME}/basejail-${RELEASE}@export
+zfs destroy ${ZPOOL}/${EZJAILVOLUME}/newjail-${RELEASE}@export
+EOF
+cat >> ${STAGEDIR}/+PRE_DEINSTALL <<EOF
+echo "Deleting basejail"
+zfs list | awk '{print \$1}'|  grep -q "${ZPOOL}/${EZJAILVOLUME}/basejail-${RELEASE}"
+if [ \$? -eq 0 ]; then
+    zfs destroy ${ZPOOL}/${EZJAILVOLUME}/basejail-${RELEASE}
+fi
+zfs list | awk '{print \$1}'|  grep -q "${ZPOOL}/${EZJAILVOLUME}/newjail-${RELEASE}"
+if [ \$? -eq 0 ]; then
+    zfs destroy ${ZPOOL}/${EZJAILVOLUME}/newjail-${RELEASE}
+fi
+EOF
+
+cat >> ${STAGEDIR}/+MANIFEST <<EOF
+name: jokerng-basejail-${RELEASE}
+version: "0.1_1"
+origin: misc/jokerng-basejail-${RELEASE}
+comment: "ezjail basejail"
+desc: "ezjail basejail"
+maintainer: @doe.it
+www: https://doe.it
+prefix: /
+deps: {
+ezjail: { origin: sysutils/ezjail }
+}
+EOF
+
+echo "${BASEJAILPATH}/basejail-${RELEASE}.bz2" >> ${STAGEDIR}/plist
+echo "${BASEJAILPATH}/newjail-${RELEASE}.bz2" >> ${STAGEDIR}/plist
+
+# dump jail
+echo "initializing the basejail"
+[ -e "/${EZJAILVOLUME}/basejail" ] || ezjail-admin install -r "11.1-RELEASE"
+
+echo "dumping the basejail"
+zfs snapshot ${ZPOOL}/${EZJAILVOLUME}/basejail@export
+zfs snapshot ${ZPOOL}/${EZJAILVOLUME}/newjail@export
+zfs send ${ZPOOL}/${EZJAILVOLUME}/basejail@export |bzip2 >  ${STAGEDIR}${BASEJAILPATH}/basejail-${RELEASE}.bz2
+zfs send ${ZPOOL}/${EZJAILVOLUME}/newjail@export |bzip2 >  ${STAGEDIR}${BASEJAILPATH}/newjail-${RELEASE}.bz2
+zfs destroy ${ZPOOL}/${EZJAILVOLUME}/basejail@export
+zfs destroy ${ZPOOL}/${EZJAILVOLUME}/newjail@export
+
+echo "creating the basejail package"
+pkg create -m ${STAGEDIR}/ -r ${STAGEDIR}/ -p ${STAGEDIR}/plist -o .

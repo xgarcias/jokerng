@@ -1,0 +1,139 @@
+#!/bin/sh
+
+ZPOOL="zroot"
+
+error_msg() {
+    echo $1
+    exit 1
+}
+
+fstab_template() {
+local hostname=$1
+echo /usr/jails/basejail /usr/jails/${hostname}/basejail nullfs ro 0 0
+}
+
+ezjail_template () {
+
+local hostname=$1
+local safename=$2
+local ipaddress=$3
+
+cat <<EOF
+export jail_${safename}_hostname="${hostname}"
+export jail_${safename}_ip="${ipaddress}"
+export jail_${safename}_rootdir="/usr/jails/${hostname}"
+export jail_${safename}_exec_start="/bin/sh /etc/rc"
+export jail_${safename}_exec_stop=""
+export jail_${safename}_mount_enable="YES"
+export jail_${safename}_devfs_enable="YES"
+export jail_${safename}_devfs_ruleset="devfsrules_jail"
+export jail_${safename}_procfs_enable="NO"
+export jail_${safename}_fdescfs_enable="YES"
+export jail_${safename}_image=""
+export jail_${safename}_imagetype="zfs"
+export jail_${safename}_attachparams=""
+export jail_${safename}_attachblocking=""
+export jail_${safename}_forceblocking="YES"
+export jail_${safename}_zfs_datasets=""
+export jail_${safename}_cpuset=""
+export jail_${safename}_fib=""
+export jail_${safename}_parentzfs="${ZPOOL}/usr/jails"
+export jail_${safename}_parameters=""
+export jail_${safename}_post_start_script=""
+export jail_${safename}_retention_policy=""
+EOF
+
+}
+
+# USER INPUT
+RELEASE="myapp-1.0"
+SRCJAIL="template-42"
+IPADDR="172.31.0.201"
+# USER INPUT
+
+[ $# -eq 3 ] || error_msg "expecting three parameters: source_jail destination_jail ip_address. i.e $ ./jail2pkg template-42 myapp-1.0 172.0.201"
+
+SRCJAIL=$1
+RELEASE=$2
+IPADDR=$3
+
+echo ${IPADDR} |egrep -q "^[[:digit:]]{1,3}.[[:digit:]]{1,3}.[[:digit:]]{1,3}.[[:digit:]]{1,3}$" || error_msg "failed to parse ipaddress"
+
+ezjail-admin list | awk '{print $4}' | tail -n +3 | grep -q "^${SRCJAIL}$"
+[ $? -eq 0 ] || error_msg "The jail $SRCJAIL doesn't exist"
+
+
+JAILPATH=/usr/local/var/jockerng/jail
+EZJAILPATH=/usr/local/etc/ezjail
+STAGEDIR=/tmp/stage
+
+HOSTNAME=`echo -n "${RELEASE}" | tr '/~' '__'`
+SAFENAME=`echo -n "${RELEASE}" | tr -c '[:alnum:]' _`
+
+
+PARENTVOL=${ZPOOL}/usr/jails
+SRCVOLNAME=${PARENTVOL}/${SRCJAIL}
+
+rm -rf ${STAGEDIR}
+mkdir -p ${STAGEDIR}${JAILPATH}
+mkdir -p ${STAGEDIR}${EZJAILPATH}
+mkdir -p ${STAGEDIR}/etc
+
+cat >> ${STAGEDIR}/+PRE_INSTALL <<EOF
+zfs list | awk '{print \$1}'|  grep -q "${PARENTVOL}/${HOSTNAME}"
+if [ \$? -eq 0 ]; then
+    echo "Volume ${PARENTVOL}/${HOSTNAME} already exists, aborting"
+    exit 1
+fi
+EOF
+
+cat >> ${STAGEDIR}/+POST_INSTALL <<EOF
+echo "Loading jail ${HOSTNAME}"
+bzcat ${JAILPATH}/${HOSTNAME}.bz2 | zfs receive "${PARENTVOL}/${HOSTNAME}"
+zfs destroy ${PARENTVOL}/${HOSTNAME}@export
+EOF
+
+cat >> ${STAGEDIR}/+PRE_DEINSTALL <<EOF
+echo "Deleting jail ${HOSTNAME}"
+zfs list | awk '{print \$1}'|  grep -q "${PARENTVOL}/${HOSTNAME}"
+if [ \$? -eq 0 ]; then
+    zfs destroy ${PARENTVOL}/${HOSTNAME}
+fi
+EOF
+
+cat >> ${STAGEDIR}/+MANIFEST <<EOF
+name: jokerng-jail-${HOSTNAME}
+version: "0.1_1"
+origin: misc/jokerng-jail-${HOSTNAME}
+comment: "application jail ${HOSTNAME}"
+desc: "application jail ${HOSTNAME}"
+maintainer: @doe.it
+www: https://doe.it
+prefix: /
+deps: {
+ezjail: { origin: sysutils/ezjail }
+}
+EOF
+
+echo "dumping the jail ${TEMPLATE_FILE_NAME}"
+
+zfs snapshot ${SRCVOLNAME}@export
+zfs send ${SRCVOLNAME}@export |bzip2 >  ${STAGEDIR}${JAILPATH}/${HOSTNAME}.bz2
+zfs destroy ${SRCVOLNAME}@export
+
+ezjail_template $HOSTNAME $SAFENAME "$IPADDR" > ${STAGEDIR}/$EZJAILPATH/${SAFENAME}
+fstab_template $HOSTNAME > ${STAGEDIR}/etc/fstab.${SAFENAME}
+
+echo "${JAILPATH}/${HOSTNAME}.bz2" >> ${STAGEDIR}/plist
+echo "$EZJAILPATH/${SAFENAME}"     >> ${STAGEDIR}/plist
+echo "/etc/fstab.${SAFENAME}"      >> ${STAGEDIR}/plist
+echo "creating jail package"
+pkg create -m ${STAGEDIR}/ -r ${STAGEDIR}/ -p ${STAGEDIR}/plist -o .
+
+
+
+
+
+#ezjail-admin create -b template-42 '172.31.0.201' > /dev/null || error_msg "unable to create template jail"
+#echo "nameserver 8.8.8.8" > /usr/jails/template-42/etc/resolv.conf
+#ezjail-admin delete -wf template-42 > /dev/null || error_msg "unable to delete the template jail"

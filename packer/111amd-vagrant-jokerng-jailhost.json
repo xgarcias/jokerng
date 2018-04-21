@@ -4,7 +4,6 @@
       "type": "shell",
       "execute_command": "chmod +x {{ .Path }}; env {{ .Vars }} {{ .Path }}",
       "scripts": [
-        "./shared/packer/scripts/lo1.sh",
         "./shared/packer/scripts/update.sh",
         "./shared/packer/scripts/vagrant.sh",
         "./shared/packer/scripts/zeroconf.sh",
@@ -16,6 +15,10 @@
       "type": "shell",
       "execute_command": "chmod +x {{ .Path }}; env {{ .Vars }} {{ .Path }}",
       "inline": ["sudo sysrc hostname='jokerng-jailhost'"]
+    },
+    {
+      "type": "ansible",
+      "playbook_file": "bootstrap_jailhost.yml"
     },
     {
       "type": "shell",
