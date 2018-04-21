@@ -1,0 +1,86 @@
+{
+  "provisioners": [
+    {
+      "type": "shell",
+      "execute_command": "chmod +x {{ .Path }}; env {{ .Vars }} {{ .Path }}",
+      "scripts": [
+        "./shared/packer/scripts/update.sh",
+        "./shared/packer/scripts/vagrant.sh",
+        "./shared/packer/scripts/zeroconf.sh",
+        "./shared/packer/scripts/ansible.sh",
+        "./shared/packer/scripts/vmtools.sh"
+      ]
+    },
+    {
+      "type": "shell",
+      "execute_command": "chmod +x {{ .Path }}; env {{ .Vars }} {{ .Path }}",
+      "inline": ["sysrc hostname='jokerng-library'"]
+    },
+    {
+      "type": "shell",
+      "execute_command": "chmod +x {{ .Path }}; env {{ .Vars }} {{ .Path }}",
+      "scripts": [
+        "./shared/packer/scripts/cleanup.sh"
+      ]
+    }
+  ],
+  "builders": [
+    {
+      "type": "virtualbox-iso",
+      "output_directory": "/tmp/output-virtualbox-iso",
+      "iso_url":
+        "http://ftp.freebsd.org/pub/FreeBSD/releases/ISO-IMAGES/11.1/FreeBSD-11.1-RELEASE-amd64-disc1.iso",
+      "iso_checksum_url": "http://ftp.freebsd.org/pub/FreeBSD/releases/ISO-IMAGES/11.1/CHECKSUM.SHA256-FreeBSD-11.1-RELEASE-amd64",
+      "iso_checksum_type": "sha256",
+      "ssh_username": "root",
+      "ssh_password": "vagrant",
+      "ssh_host_port_min": 4444,
+      "ssh_host_port_max": 4444,
+      "ssh_port": 22,
+      "ssh_wait_timeout": "1000s",
+      "guest_additions_mode": "disable",
+      "virtualbox_version_file": ".vbox_version",
+      "guest_os_type": "FreeBSD_64",
+      "hard_drive_interface": "sata",
+      "headless": true,
+      "iso_interface": "sata",
+      "shutdown_command": "poweroff",
+      "boot_wait": "10s",
+      "http_directory": "./shared/packer/http",
+      "disk_size": "102400",
+      "vboxmanage": [
+        [
+          "modifyvm", "{{ .Name }}",
+          "--audio", "none",
+          "--cpus", "4",
+          "--memory", "4096",
+          "--nictype1", "virtio",
+          "--nictype2", "virtio"
+        ],
+        [
+          "storagectl", "{{ .Name }}",
+          "--name", "IDE Controller",
+          "--remove"
+        ]
+      ],
+      "vm_name": "jokerng-library",
+      "boot_command": [
+        "<esc><wait>",
+        "boot -s<enter>",
+        "<wait10><wait5>",
+        "/bin/sh<enter><wait>",
+        "mdmfs -s 100m md1 /tmp<enter><wait>",
+        "dhclient -l /tmp/dhclient.lease.vtnet0 vtnet0<enter><wait5>",
+        "fetch -o /tmp/installerconfig http://{{ .HTTPIP }}:{{ .HTTPPort }}/installerconfig_zfs<enter><wait5>",
+        "bsdinstall script /tmp/installerconfig<enter>"
+      ]
+    }
+  ],
+  "post-processors": [
+    [{
+      "type": "vagrant",
+      "vagrantfile_template": "./shared/vagrant/vagrant_files/jokerng-library",
+      "output": "/tmp/builds/111amd-jokerng-library.box"
+    }]
+  ]
+}
