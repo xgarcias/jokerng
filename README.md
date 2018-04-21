@@ -5,9 +5,9 @@ Yet another Docker clone for FreeBSD jails
 
 I am yet another poor soul doing DevOps with FreeBSD, dreaming that one day we may have tools similar to Docker and Kubernetes.
 
-Many people in the past came with the idea of implementing or porting Docker to FreeBSD, naming it Jocker.  Everybody likes the name because it is catchy: the project uses **FreeBSD jails** and the Docker/Container movement in Linux is a "joke" for many FreeBSD supporters :)
+Many people in the past came with the idea of implementing or porting Docker to FreeBSD, naming it **Jocker**.  Everybody likes the name because it is catchy: the project uses **FreeBSD jails** and the Docker/Container movement in Linux is a "joke" for many FreeBSD supporters :)
 
-**jockerng** will be the best **jocker** implementation ever and it will not be yet another dead repo in github. **I swear**!
+**jokerng** will be the best **jocker** implementation ever and it will not be yet another dead repo in github. **I swear**!
 
 Objective
 =========
