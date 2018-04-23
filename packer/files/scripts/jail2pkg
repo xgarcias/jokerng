@@ -51,7 +51,7 @@ SRCJAIL="template-42"
 IPADDR="172.31.0.201"
 # USER INPUT
 
-[ $# -eq 3 ] || error_msg "expecting three parameters: source_jail destination_jail ip_address. i.e $ ./jail2pkg template-42 myapp-1.0 172.0.201"
+[ $# -eq 3 ] || error_msg "expecting three parameters: source_jail destination_jail ip_address. i.e $ ./jail2pkg template-42 myapp-1.0 172.31.0.201"
 
 SRCJAIL=$1
 RELEASE=$2
