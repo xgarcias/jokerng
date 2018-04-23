@@ -69,3 +69,18 @@
       name: "pf"
       enabled: "yes"
       state: "started"
+
+  - name: Pkg config dir
+    file:
+      path: "/usr/local/etc/pkg/repos"
+      state: "directory"
+      owner: "root"
+      group: "wheel"
+
+  - name: Pkg config for the library
+    copy:
+      src: "repo.conf"
+      dest: "/usr/local/etc/pkg/repos/repo.conf"
+      owner: "root"
+      group: "wheel"
+      mode: "0644"

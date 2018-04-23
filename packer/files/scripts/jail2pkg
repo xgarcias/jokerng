@@ -115,7 +115,7 @@ ezjail: { origin: sysutils/ezjail }
 }
 EOF
 
-echo "dumping the jail ${TEMPLATE_FILE_NAME}"
+echo "dumping the jail ${HOSTNAME}"
 
 zfs snapshot ${SRCVOLNAME}@export
 zfs send ${SRCVOLNAME}@export |bzip2 >  ${STAGEDIR}${JAILPATH}/${HOSTNAME}.bz2
@@ -127,7 +127,7 @@ fstab_template $HOSTNAME > ${STAGEDIR}/etc/fstab.${SAFENAME}
 echo "${JAILPATH}/${HOSTNAME}.bz2" >> ${STAGEDIR}/plist
 echo "$EZJAILPATH/${SAFENAME}"     >> ${STAGEDIR}/plist
 echo "/etc/fstab.${SAFENAME}"      >> ${STAGEDIR}/plist
-echo "creating jail package"
+echo "creating jail package ${HOSTNAME}"
 pkg create -m ${STAGEDIR}/ -r ${STAGEDIR}/ -p ${STAGEDIR}/plist -o .
 
 
