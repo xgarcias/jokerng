@@ -16,7 +16,7 @@ Crafting something that provides the minimum functionalities to run disposable j
 
 The concept and philosophy is similar to Docker but without the fancy stuff. I am busy and terrible at coding, that's why I will use off the shelf tools to build the **Proof of Concept**
 
-Standard FreeBSD package used:
+Standard FreeBSD packages used:
 
 * Nginx plus pkgng to build a library or catalog.
 * zfs snapshots
@@ -27,7 +27,7 @@ Setup components
 ================
 
 * library to deliver ezjail base and jails with pkgng
-* ezjail base (used in the deliver a common FreeBSD base to all jails) as a pkg
+* ezjail base (used to deliver a common FreeBSD base to all jails) as a pkg
 *  **Optional:** /usr/src as a pkg? ezjail can cause problems with freebsd-update otherwise
 * jails exported via **zfs snapshot** and packaged with pkgng
 * some scripts or ansible to automate the management tasks
