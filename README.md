@@ -48,6 +48,9 @@ PoC
 
 * Vagrant img for the library
 * Vagrant img for the jailhost
+* Logic to autogenerate the demo packages and the packaged jails distribution.
+
+<a href="https://asciinema.org/a/178282"><img src="https://asciinema.org/a/178282.png" width="836"/></a>
 
 External links
 ==============
