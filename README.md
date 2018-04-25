@@ -46,8 +46,9 @@ Note: The jail doesn't autostart on boot unless we change the config. This must 
 PoC
 ===
 
-* Vagrant img for the library
-* Vagrant img for the jailhost
+* Vagrant imgage for the library
+* Vagrant image for the jailhost
+* **Packer** and **Ansible** to configure and build the Vagrant images
 * Logic to autogenerate the demo packages and the packaged jails distribution.
 
 <a href="https://asciinema.org/a/178282"><img src="https://asciinema.org/a/178282.png" width="836"/></a>
