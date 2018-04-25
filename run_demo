@@ -4,22 +4,6 @@ set -e
 
 SSH_CFG=`mktemp`
 
-echo "destroying the current environment and bootstrapping a new one"
-echo
-
-sleep 5
-# remove existing builds
-vagrant box remove -f /tmp/builds/111amd-jokerng-jailhost.box || true
-vagrant box remove -f /tmp/builds/111amd-jokerng-library.box || true
-
-vagrant destroy -f  jailhost || true
-vagrant destroy -f  library || true
-
-( cd packer && ./build_jokerng-jailhost )
-( cd packer && ./build_jokerng-library )
-
-vagrant up
-
 vagrant ssh-config > $SSH_CFG
 
 echo "Generating basejail and jail packages before uploading them to the library"
